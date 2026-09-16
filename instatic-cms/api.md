@@ -1,6 +1,8 @@
 # Instatic Admin API Reference
 
-Compiled from route tables and handler doc-headers in `server/handlers/cms` at v0.0.20. Paths sit under `/admin/api/cms` unless noted. Session cookie `instatic_admin_session` (HttpOnly, Path=/admin). State-changing calls require a matching Origin header (CSRF). Capability gates in parentheses. System roles: owner, admin, client, member; custom roles are capability sets.
+Compiled from route tables and handler doc-headers in `server/handlers/cms` at v0.0.20, plus live-verified behavior. Paths sit under `/admin/api/cms` unless noted. Session cookie `instatic_admin_session` (HttpOnly, Path=/admin). State-changing calls require a matching Origin header (CSRF). Capability gates in parentheses; step-up notes mark routes verified or read as gated in handler source. System roles: owner, admin (39 of 40 capabilities, everything but roles.manage), client, member; custom roles are capability sets, and owner-only capabilities are stripped from non-owner roles at read time.
+
+Scripted flow that works: one cookie jar across login plus every call (`curl -b jar -c jar`), Origin header equal to the base URL, and a step-up call when a route answers 401 `step_up_required`.
 
 ## Setup and first run (public, one-shot)
 - GET /setup/status -> {hasSite,hasAdmin,hasOwner,needsSetup}
@@ -10,26 +12,30 @@ Compiled from route tables and handler doc-headers in `server/handlers/cms` at v
 ## Auth and account
 - POST /login {email,password}; POST /logout; POST /auth/logout-all
 - GET /me; PATCH /me (displayName,email); PATCH /me/password
-- POST /auth/step-up (opens window, default 15 min; PATCH /me/security/step-up sets 5/15/30/60)
+- POST /auth/step-up {password} (opens window, default 15 min; PATCH /me/security/step-up sets 5/15/30/60)
 - GET /auth/sessions; DELETE /auth/sessions/:id
 - POST /auth/mfa/verify; POST /me/mfa/totp/start; POST /me/mfa/totp/enable; DELETE /me/mfa/totp; POST /me/mfa/recovery-codes
 - GET /auth/activity (login attempts; lockout diagnosis)
 - /me/preferences/:key (catalog-driven editor prefs); POST /me/avatar; DELETE /me/avatar
 
-## Users and roles (users.manage / roles.manage)
-- GET|POST /users; PATCH|DELETE /users/:id. Create rejects role=owner; delete is soft; guards stop you removing the last active owner
+## Users and roles (users.manage / roles.manage; mutations step-up-gated per handler source)
+- GET /users; POST /users {email,password,displayName?,roleId,status?} (create rejects role=owner; guards stop you removing the last active owner)
+- PATCH /users/:id (email/displayName/password/roleId/status); DELETE /users/:id (soft)
 - GET|POST /roles; PATCH|DELETE /roles/:id (custom roles only; built-ins resync at boot)
 
 ## Data: tables and rows
-Tables (writes content.manage):
-- GET|POST /data/tables; GET|PATCH|DELETE /data/tables/:id (create/patch body carries fields[] normalized server-side; system tables keep frozen identity and built-in fields)
-- GET|POST /data/tables/:id/rows (POST creates a draft row); GET /data/tables/:id/loop-preview
+Tables (writes content.manage; create/patch/delete additionally step-up-gated, live-verified on create):
+- GET /data/tables (list with row counts, optional query + limit); POST /data/tables -> 201 {table}
+- Create semantics: kind coerces to postType|data (system tables are not creatable); slug from pluralLabel, pluralLabel from name, singularLabel from name minus trailing s; supplied fields win on id collision; omitting fields entirely gets the canonical six postType built-ins; mandatory title+slug are auto-prepended when missing; non-empty routeBase gives published rows public URLs
+- GET /data/tables/:id -> {table} (full stored schema; the readback for computed flags); PATCH/DELETE /data/tables/:id (system tables frozen; step-up)
+- GET /data/tables/:id/rows; POST /data/tables/:id/rows (draft row); GET /data/tables/:id/loop-preview
 Rows:
 - GET|PATCH|DELETE /data/rows/:id (PATCH saves draft cells; DELETE soft)
 - POST /data/rows/:id/publish (content.publish.own / .any); PATCH /data/rows/:id/status (draft<->unpublished)
 - POST|DELETE /data/rows/:id/schedule (scheduled publish); PATCH /data/rows/:id/author; PATCH /data/rows/:id/table (data.rows.move)
 - POST /data/rows/:id/preview; GET /data/rows/:id/versions; POST /data/rows/:id/versions/:versionId/restore
-- GET /data/authors; GET /data/search?query=&limit=; GET /data/_meta
+- GET /data/authors; GET /data/search?query=&limit=
+- GET /data/_meta -> {meta:{tables:[{id,slug,name,kind,singularLabel,pluralLabel,primaryFieldId,routable,versioned,fields}]}} (nested under `meta`; the compact schema view)
 
 ## Site and editor (site.read; writes site.structure.edit / site.content.edit / site.style.edit)
 - GET /site (draft shell: breakpoints, classes, files, deps)

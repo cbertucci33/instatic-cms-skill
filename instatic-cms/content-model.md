@@ -2,17 +2,21 @@
 
 ## Tables (`data_tables`)
 Five kinds (source union `DataTableKindSchema`):
-- `postType`: authored in the Content workspace. Editorial states: draft, published, unpublished, scheduled. Published copies keep version history. Built-in fields: title, slug, body, featuredMedia, seoTitle, seoDescription; built-ins are enable/disable only, never rename or delete. Custom fields are added per table.
+- `postType`: authored in the Content workspace. Editorial states: draft, published, unpublished, scheduled. Published copies keep version history. Built-in fields: title and slug are mandatory and auto-created when a create payload omits them; body (richText, markdown), featuredMedia (image media), seoTitle, and seoDescription are the canonical set supplied when no fields are passed at all, and those four are removable per table (disable, never rename). Custom fields are added per table.
 - `data`: plain spreadsheet grid, no editorial workflow. Good for teams, testimonials, product rows, form submissions.
-- `page`, `component`, `layout`: system tables behind the editor's page tree, visual components, and saved layouts. Read-only via `GET /pages?id=`, `/components?id=`, `/layouts?id=`; edited through the canvas or agent.
+- `page`, `component`, `layout`: system tables behind the editor's page tree, visual components, and saved layouts. The table create API only produces postType or data tables (other kinds coerce to data); these three arrive with the instance and are edited through the canvas or agent. Read them via `GET /pages?id=`, `/components?id=`, `/layouts?id=`.
 
 ## Fields (16 types, source union `DataFieldSchema`)
 text, longText, richText, number, boolean, date, dateTime, select, multiSelect, url, email, media, relation, repeater, pageTree, fieldSchema.
 - richText carries `format: markdown | html`.
 - number carries `format: number | currency | percent` plus optional ISO-4217 `currency` code.
 - media carries `mediaKind: image | video | any`.
-- select stores one option id; multiSelect an option id array; relation references rows in another table; repeater holds nested item fields.
+- select/multiSelect options are objects `{id, label, value, color?}`; cells store one option id or an array of them.
+- relation references rows in another table; repeater holds nested item fields.
 - There is no icon-picker field control at v0.0.20. Model a per-card icon as a media field or a select whose option labels name the icon.
+
+## Creating tables programmatically
+`POST /data/tables` (content.manage + step-up): `kind` accepts only `postType` or `data`; slug derives from pluralLabel (which defaults to name); singularLabel defaults to the name minus a trailing s; supplied fields win on id collision with the auto-added mandatory pair. `routeBase` is the public route root for published rows; empty means the table has no URLs. Computed flags (`routable`, `versioned`) are not returned in the create response; read `/data/_meta` or the table item to confirm them.
 
 ## Row values
 `cells_json[fieldId]`: strings for text kinds, numbers, booleans, ISO strings for date kinds, option ids for selects. Write through the rows API or UI, never raw SQL.

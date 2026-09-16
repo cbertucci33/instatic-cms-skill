@@ -24,7 +24,7 @@ SPA at `/admin`. Workspaces: dashboard, site (canvas editor), content, data, med
 - Folder tree plus smart folders (virtual predicate views like "unused"), usage tracking so you know where an asset appears, replace workflow preserving URLs, upload queue and viewer float windows, bulk operations.
 
 ## Users, roles, and account
-- Role = set of capabilities; owner only exists from first-run setup; API refuses owner assignment and guards the last active owner.
+- Role = set of capabilities; owner only exists from first-run setup; API refuses owner assignment and guards the last active owner. Create User button opens a dialog (Email, Display name, Initial password min 12 chars, Role select; Owner is filtered out of assignable roles) and asks for the acting user's password (step-up) on submit.
 - Per-user TOTP MFA with recovery codes, device-labeled session list, step-up window preference.
 
 ## Dashboard and audit

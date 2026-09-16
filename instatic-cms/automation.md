@@ -3,7 +3,7 @@
 Four programmatic doors, widest to narrowest.
 
 ## 1. REST API
-Everything the UI does (see api.md). Cookie session + matching Origin + step-up when gated. Right tool for: schema creation (tables/fields), row CRUD and publish cycles, media upload, export/backup pulls, audit reads. Wrong tool for: page-tree edits (never hand-write /site-document payloads).
+Everything the UI does (see api.md). Cookie session + matching Origin + step-up when gated. Right tool for: schema creation (tables/fields, step-up gated), row CRUD and publish cycles, media upload, export/backup pulls, audit reads. Wrong tool for: page-tree edits (never hand-write /site-document payloads).
 
 ## 2. In-app AI agent
 - Streams over POST /admin/api/ai/chat/site|content (NDJSON); browser-bridged tools relay results via /admin/api/ai/tool-result so edits hit the live workspace state.
@@ -22,4 +22,4 @@ Everything the UI does (see api.md). Cookie session + matching Origin + step-up 
 - Lifecycle: enable/disable, restart, uninstall (?force deletes assets), settings update, SSE event stream.
 
 ## Etiquette
-Schema through the API. Page trees and styling through the agent or UI. Publishing only via the app's own publish calls, never by writing files into the published directory.
+Schema through the API (expect step-up). Page trees and styling through the agent or UI. Publishing only via the app's own publish calls, never by writing files into the published directory.
